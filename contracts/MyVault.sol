@@ -9,7 +9,7 @@ contract VaultNFT is ERC721Full {
         
     address admin;
     
-    constructor() public ERC721Full("miMATIC Vault", "MMTV") {
+    constructor() public ERC721Full("ghostDai Vault", "GDV") {
         admin = msg.sender;
     }
     
@@ -19,7 +19,7 @@ contract VaultNFT is ERC721Full {
     }
 
     function _transferFrom(address from, address to, uint256 tokenId) internal {
-        revert("transfer: disabled");
+        
     }
     
     function burn(uint256 tokenId) public {
