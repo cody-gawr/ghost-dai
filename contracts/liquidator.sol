@@ -14,7 +14,7 @@ contract liquidator is ReentrancyGuard {
 
     address public admin;
 
-    ERC20 mimatic;
+    ERC20 ghostdai;
 
     Stablecoin vaultContract;
 
@@ -23,13 +23,13 @@ contract liquidator is ReentrancyGuard {
 
     uint256 private _minimumCollateralPercentage;
 
-    mapping(address => uint256) public maticDebt;
+    mapping(address => uint256) public ethDebt;
 
-    constructor(address _vaultContract, address _mimatic) public {
+    constructor(address _vaultContract, address _ghostdai) public {
         admin = msg.sender;
 
         vaultContract = Stablecoin(_vaultContract);
-        mimatic = ERC20(_mimatic);
+        ghostdai = ERC20(_ghostdai);
 
         debtRatio = 2;
         gainRatio = 11;// /10 so 1.1
@@ -80,9 +80,9 @@ contract liquidator is ReentrancyGuard {
     }
 
     function getPaid() public nonReentrant {
-        require(maticDebt[msg.sender]!=0, "Don't have anything for you.");
-        uint256 amount = maticDebt[msg.sender];
-        maticDebt[msg.sender]=0;
+        require(ethDebt[msg.sender]!=0, "Don't have anything for you.");
+        uint256 amount = ethDebt[msg.sender];
+        ethDebt[msg.sender]=0;
         msg.sender.transfer(amount);
     }
 
@@ -118,9 +118,9 @@ contract liquidator is ReentrancyGuard {
 
         uint256 halfDebt = debtValue.div(debtRatio);
 
-        uint256 maticExtract = halfDebt.mul(11).div(10).div(vaultContract.getEthPriceSource());
+        uint256 ethExtract = halfDebt.mul(11).div(10).div(vaultContract.getEthPriceSource());
 
-        return maticExtract;
+        return ethExtract;
     }
 
     function checkValid( uint256 _vaultId ) public view returns(bool, uint256, uint256, uint256) {
@@ -131,20 +131,20 @@ contract liquidator is ReentrancyGuard {
 
         uint256 halfDebt = ogDebtValue.div(debtRatio);
 
-        uint256 maticExtract = halfDebt.mul(11).div(10).div(vaultContract.getEthPriceSource());
+        uint256 ethExtract = halfDebt.mul(11).div(10).div(vaultContract.getEthPriceSource());
 
         uint256 newCollateral = vaultContract.vaultCollateral(_vaultId).sub(maticExtract);
 
         halfDebt = halfDebt.div(100000000);
 
-        return (isValidCollateral(newCollateral, halfDebt), newCollateral, halfDebt, maticExtract);
+        return (isValidCollateral(newCollateral, halfDebt), newCollateral, halfDebt, ethExtract);
     }
 
     function checkCollat(uint256 _vaultId) public view returns(uint256, uint256) {
         return calculateCollateralProperties(vaultContract.vaultCollateral(_vaultId), vaultContract.vaultDebt(_vaultId) );
     }
 
-    function checkMimaticBalance(address _address) public view returns (uint256){
+    function checkGhostdaiBalance(address _address) public view returns (uint256){
         return vaultContract.balanceOf(_address);
     }
 
@@ -160,7 +160,7 @@ contract liquidator is ReentrancyGuard {
 
         uint256 collateralPercentage = collateralValueTimes100.div(ogDebtValue);
 
-        uint256 maticExtract = checkExtract ( _vaultId);
+        uint256 ethExtract = checkExtract ( _vaultId);
 
         require(collateralPercentage < _minimumCollateralPercentage, "Vault is not below minimum collateral percentage");
 
@@ -174,11 +174,11 @@ contract liquidator is ReentrancyGuard {
 
         vaultContract.payBackToken(_vaultId, newBalance);
 
-        vaultContract.withdrawCollateral(_vaultId, maticExtract );
+        vaultContract.withdrawCollateral(_vaultId, ethExtract );
 
         vaultContract.transferVault(_vaultId, ogOwner);
 
-        maticDebt[msg.sender] = maticDebt[msg.sender].add(maticExtract);
+        ethDebt[msg.sender] = ethDebt[msg.sender].add(ethExtract);
     }
 
     function() external payable { }
