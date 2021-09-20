@@ -49,41 +49,41 @@ contract daiSwap is ReentrancyGuard {
     // this returns the reserves in the contract
 
     function getReserves() public view returns(uint256, uint256) {
-    	return ( ghostdai.balanceOf(address(this)), dai.balanceOf(address(this)) );
+        return ( ghostdai.balanceOf(address(this)), dai.balanceOf(address(this)) );
     }
     
     // the user must approve the balance so the contract can take it out of the user's account
     // else this will fail.
 
     function swapFrom(uint256 amount) public nonReentrant {
-    	require(amount!=0, "swapFrom: invalid amount");
-    	require(ghostdai.balanceOf(address(this))!=0, "swapFrom: Not enough ghostDai in reserves");
+        require(amount!=0, "swapFrom: invalid amount");
+        require(ghostdai.balanceOf(address(this))!=0, "swapFrom: Not enough ghostDai in reserves");
 
-	    // for every 1.02 dai we get 1.00 ghostdai
-	    	// 1020000 we get 1000000000000000000
+        // for every 1.02 dai we get 1.00 ghostdai
+            // 1020000 we get 1000000000000000000
 
-	    uint256 amountToSend = amount.mul(100000000000000).div(daiRate);
+        uint256 amountToSend = amount.mul(daiRate).div(100);
 
-	    require(ghostdai.balanceOf(address(this)) >= amountToSend, "swapFrom: Not enough ghostDai in reserves");
+        require(ghostdai.balanceOf(address(this)) >= amountToSend, "swapFrom: Not enough ghostDai in reserves");
 
-	    // Transfer DAI to contract
-	    dai.transferFrom(msg.sender, address(this), amount);
-	    // Transfer ghostDai to sender
-	    ghostdai.transfer(msg.sender, amountToSend);
-	}
+        // Transfer DAI to contract
+        dai.transferFrom(msg.sender, address(this), amount);
+        // Transfer ghostDai to sender
+        ghostdai.transfer(msg.sender, amountToSend);
+    }
 
     function swapTo(uint256 amount) public nonReentrant {
-    	require(amount!=0, "swapTo: invalid amount");
-    	require(dai.balanceOf(address(this))!=0, "swapTo: Not enough DAI in reserves");
-	    // for every 1.00 ghostdai we get 0.98 dai
-	    	// 1000000000000000000 we get 980000 (bc decimals)
-	    uint256 amountToSend = amount.mul(ghostdaiRate).div(100000000000000);
+        require(amount!=0, "swapTo: invalid amount");
+        require(dai.balanceOf(address(this))!=0, "swapTo: Not enough DAI in reserves");
+        // for every 1.00 ghostdai we get 0.98 dai
+            // 1000000000000000000 we get 980000 (bc decimals)
+        uint256 amountToSend = amount.mul(ghostdaiRate).div(100);
 
-	    require(dai.balanceOf(address(this)) >= amountToSend, "swapTo: Not enough ghostDai in reserves");
+        require(dai.balanceOf(address(this)) >= amountToSend, "swapTo: Not enough ghostDai in reserves");
 
-	    // Tranfer tokens from sender to this contract
-	    ghostdai .transferFrom(msg.sender, address(this), amount);
-	    // Transfer amount minus fees to sender
-	    dai.transfer(msg.sender, amountToSend);
-	}
+        // Tranfer tokens from sender to this contract
+        ghostdai .transferFrom(msg.sender, address(this), amount);
+        // Transfer amount minus fees to sender
+        dai.transfer(msg.sender, amountToSend);
+    }
 }
