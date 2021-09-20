@@ -5,3 +5,5 @@ artifacts/**
 cache/**/**
 cache/solidity-files-cache.json
 .env
+.env_sample
+
