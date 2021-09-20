@@ -133,7 +133,7 @@ contract liquidator is ReentrancyGuard {
 
         uint256 ethExtract = halfDebt.mul(11).div(10).div(vaultContract.getEthPriceSource());
 
-        uint256 newCollateral = vaultContract.vaultCollateral(_vaultId).sub(maticExtract);
+        uint256 newCollateral = vaultContract.vaultCollateral(_vaultId).sub(ethExtract);
 
         halfDebt = halfDebt.div(100000000);
 
