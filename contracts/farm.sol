@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity >=0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/EnumerableSet.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 abstract contract ReentrancyGuard {
@@ -24,7 +24,7 @@ abstract contract ReentrancyGuard {
 
     uint256 private _status;
 
-    constructor () internal {
+    constructor() internal {
         _status = _NOT_ENTERED;
     }
 
@@ -54,13 +54,13 @@ abstract contract ReentrancyGuard {
 //
 // Cloned from https://github.com/SashimiProject/sashimiswap/blob/master/contracts/MasterChef.sol
 // Modified by Manhattan Finance to work for non-mintable ERC20.
-contract Farm is Ownable, ReentrancyGuard {
+contract Farm is OwnableUpgradeable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     // Info of each user.
     struct UserInfo {
-        uint256 amount;     // How many LP tokens the user has provided.
+        uint256 amount; // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
         //
         // We do some fancy math here. Basically, any point in time, the amount of ERC20s
@@ -77,11 +77,11 @@ contract Farm is Ownable, ReentrancyGuard {
 
     // Info of each pool.
     struct PoolInfo {
-        IERC20 lpToken;             // Address of LP token contract.
-        uint256 allocPoint;         // How many allocation points assigned to this pool. ERC20s to distribute per block.
-        uint256 lastRewardBlock;    // Last block number that ERC20s distribution occurs.
-        uint256 accERC20PerShare;   // Accumulated ERC20s per share, times 1e12.
-        uint16 depositFeeBP;        // Deposit fee in basis points
+        IERC20 lpToken; // Address of LP token contract.
+        uint256 allocPoint; // How many allocation points assigned to this pool. ERC20s to distribute per block.
+        uint256 lastRewardBlock; // Last block number that ERC20s distribution occurs.
+        uint256 accERC20PerShare; // Accumulated ERC20s per share, times 1e12.
+        uint16 depositFeeBP; // Deposit fee in basis points
     }
 
     // Address of the ERC20 Token contract.
@@ -94,7 +94,7 @@ contract Farm is Ownable, ReentrancyGuard {
     // Info of each pool.
     PoolInfo[] public poolInfo;
     // Info of each user that stakes LP tokens.
-    mapping (uint256 => mapping (address => UserInfo)) public userInfo;
+    mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
 
@@ -102,22 +102,31 @@ contract Farm is Ownable, ReentrancyGuard {
     uint256 public startBlock;
     // The block number when farming ends.
     uint256 public endBlock;
-    
+
     // Deposit Fee address
     address public feeAddress;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
-    event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event EmergencyWithdraw(
+        address indexed user,
+        uint256 indexed pid,
+        uint256 amount
+    );
 
-    constructor(IERC20 _erc20, uint256 _rewardPerBlock, uint256 _startBlock, address _feeAddress) public {
+    constructor(
+        IERC20 _erc20,
+        uint256 _rewardPerBlock,
+        uint256 _startBlock,
+        address _feeAddress
+    ) public {
         erc20 = _erc20;
         rewardPerBlock = _rewardPerBlock;
         startBlock = _startBlock;
         endBlock = _startBlock;
         feeAddress = _feeAddress;
     }
-    
+
     function setFeeAddress(address _feeAddress) public {
         require(msg.sender == feeAddress, "setFeeAddress: FORBIDDEN");
         feeAddress = _feeAddress;
@@ -132,55 +141,88 @@ contract Farm is Ownable, ReentrancyGuard {
     function fund(uint256 _amount) public onlyOwner {
         require(block.number < endBlock, "fund: too late, the farm is closed");
 
-        erc20.safeTransferFrom(address(msg.sender), address(this), _amount);
+        erc20.transferFrom(address(msg.sender), address(this), _amount);
         endBlock += _amount.div(rewardPerBlock);
     }
 
     // Add a new lp to the pool. Can only be called by the owner.
     // DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate, uint16 _depositFeeBP) public onlyOwner {
-        require(_depositFeeBP <= 10000, "add: invalid deposit fee basis points");
+    function add(
+        uint256 _allocPoint,
+        IERC20 _lpToken,
+        bool _withUpdate,
+        uint16 _depositFeeBP
+    ) public onlyOwner {
+        require(
+            _depositFeeBP <= 10000,
+            "add: invalid deposit fee basis points"
+        );
         if (_withUpdate) {
             massUpdatePools();
         }
-        uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
+        uint256 lastRewardBlock = block.number > startBlock
+            ? block.number
+            : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
-        poolInfo.push(PoolInfo({
-            lpToken: _lpToken,
-            allocPoint: _allocPoint,
-            lastRewardBlock: lastRewardBlock,
-            accERC20PerShare: 0,
-            depositFeeBP : _depositFeeBP
-        }));
+        poolInfo.push(
+            PoolInfo({
+                lpToken: _lpToken,
+                allocPoint: _allocPoint,
+                lastRewardBlock: lastRewardBlock,
+                accERC20PerShare: 0,
+                depositFeeBP: _depositFeeBP
+            })
+        );
     }
 
     // Update the given pool's ERC20 allocation point. Can only be called by the owner.
-    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
+    function set(
+        uint256 _pid,
+        uint256 _allocPoint,
+        bool _withUpdate
+    ) public onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
         }
-        totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
+        totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(
+            _allocPoint
+        );
         poolInfo[_pid].allocPoint = _allocPoint;
     }
 
     // View function to see deposited LP for a user.
-    function deposited(uint256 _pid, address _user) external view returns (uint256) {
+    function deposited(uint256 _pid, address _user)
+        external
+        view
+        returns (uint256)
+    {
         UserInfo storage user = userInfo[_pid][_user];
         return user.amount;
     }
 
     // View function to see pending ERC20s for a user.
-    function pending(uint256 _pid, address _user) external view returns (uint256) {
+    function pending(uint256 _pid, address _user)
+        external
+        view
+        returns (uint256)
+    {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accERC20PerShare = pool.accERC20PerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
 
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
-            uint256 lastBlock = block.number < endBlock ? block.number : endBlock;
+            uint256 lastBlock = block.number < endBlock
+                ? block.number
+                : endBlock;
             uint256 nrOfBlocks = lastBlock.sub(pool.lastRewardBlock);
-            uint256 erc20Reward = nrOfBlocks.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accERC20PerShare = accERC20PerShare.add(erc20Reward.mul(1e12).div(lpSupply));
+            uint256 erc20Reward = nrOfBlocks
+                .mul(rewardPerBlock)
+                .mul(pool.allocPoint)
+                .div(totalAllocPoint);
+            accERC20PerShare = accERC20PerShare.add(
+                erc20Reward.mul(1e12).div(lpSupply)
+            );
         }
 
         return user.amount.mul(accERC20PerShare).div(1e12).sub(user.rewardDebt);
@@ -219,9 +261,14 @@ contract Farm is Ownable, ReentrancyGuard {
         }
 
         uint256 nrOfBlocks = lastBlock.sub(pool.lastRewardBlock);
-        uint256 erc20Reward = nrOfBlocks.mul(rewardPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        uint256 erc20Reward = nrOfBlocks
+            .mul(rewardPerBlock)
+            .mul(pool.allocPoint)
+            .div(totalAllocPoint);
 
-        pool.accERC20PerShare = pool.accERC20PerShare.add(erc20Reward.mul(1e12).div(lpSupply));
+        pool.accERC20PerShare = pool.accERC20PerShare.add(
+            erc20Reward.mul(1e12).div(lpSupply)
+        );
         pool.lastRewardBlock = block.number;
     }
 
@@ -231,15 +278,23 @@ contract Farm is Ownable, ReentrancyGuard {
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pendingAmount = user.amount.mul(pool.accERC20PerShare).div(1e12).sub(user.rewardDebt);
+            uint256 pendingAmount = user
+                .amount
+                .mul(pool.accERC20PerShare)
+                .div(1e12)
+                .sub(user.rewardDebt);
             erc20Transfer(msg.sender, pendingAmount);
         }
-        
+
         if (_amount > 0) {
-            pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+            pool.lpToken.transferFrom(
+                address(msg.sender),
+                address(this),
+                _amount
+            );
             if (pool.depositFeeBP > 0) {
                 uint256 depositFee = _amount.mul(pool.depositFeeBP).div(10000);
-                pool.lpToken.safeTransfer(feeAddress, depositFee);
+                pool.lpToken.transfer(feeAddress, depositFee);
                 user.amount = user.amount.add(_amount).sub(depositFee);
             } else {
                 user.amount = user.amount.add(_amount);
@@ -253,13 +308,20 @@ contract Farm is Ownable, ReentrancyGuard {
     function withdraw(uint256 _pid, uint256 _amount) public nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        require(user.amount >= _amount, "withdraw: can't withdraw more than deposit");
+        require(
+            user.amount >= _amount,
+            "withdraw: can't withdraw more than deposit"
+        );
         updatePool(_pid);
-        uint256 pendingAmount = user.amount.mul(pool.accERC20PerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pendingAmount = user
+            .amount
+            .mul(pool.accERC20PerShare)
+            .div(1e12)
+            .sub(user.rewardDebt);
         erc20Transfer(msg.sender, pendingAmount);
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accERC20PerShare).div(1e12);
-        pool.lpToken.safeTransfer(address(msg.sender), _amount);
+        pool.lpToken.transfer(address(msg.sender), _amount);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -267,7 +329,7 @@ contract Farm is Ownable, ReentrancyGuard {
     function emergencyWithdraw(uint256 _pid) public nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        pool.lpToken.safeTransfer(address(msg.sender), user.amount);
+        pool.lpToken.transfer(address(msg.sender), user.amount);
         emit EmergencyWithdraw(msg.sender, _pid, user.amount);
         user.amount = 0;
         user.rewardDebt = 0;

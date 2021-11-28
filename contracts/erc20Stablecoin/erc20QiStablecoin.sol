@@ -1,7 +1,7 @@
 
-pragma solidity 0.5.16;
+pragma solidity >=0.8.0;
 
-import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./erc20Stablecoin.sol";
 
 contract erc20QiStablecoin is erc20Stablecoin, Ownable {
@@ -76,6 +76,6 @@ contract erc20QiStablecoin is erc20Stablecoin, Ownable {
     }
 
     function setBaseURI(string memory baseURI) public onlyOwner() {
-        _setBaseURI(baseURI);
+        setBaseURI(baseURI);
     }
 }

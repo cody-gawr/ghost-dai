@@ -1,11 +1,11 @@
 
 // contracts/liquidator.sol
 // SPDX-License-Identifier: MIT
-pragma solidity 0.5.5;
+pragma solidity >=0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./Stablecoin.sol";
 
@@ -25,7 +25,7 @@ contract liquidator is ReentrancyGuard {
 
     mapping(address => uint256) public ethDebt;
 
-    constructor(address _vaultContract, address _ghostdai) public {
+    constructor(address _vaultContract, address _ghostdai) {
         admin = msg.sender;
 
         vaultContract = Stablecoin(_vaultContract);
@@ -83,11 +83,11 @@ contract liquidator is ReentrancyGuard {
         require(ethDebt[msg.sender]!=0, "Don't have anything for you.");
         uint256 amount = ethDebt[msg.sender];
         ethDebt[msg.sender]=0;
-        msg.sender.transfer(amount);
+        payable(msg.sender).transfer(amount);
     }
 
     function checkLiquidation (uint256 _vaultId) public view {
-        address ogOwner = vaultContract.vaultOwner(_vaultId);
+        // address ogOwner = vaultContract.vaultOwner(_vaultId);
 
         (uint256 collateralValueTimes100, uint256 debtValue) = calculateCollateralProperties(vaultContract.vaultCollateral(_vaultId), vaultContract.vaultDebt(_vaultId) );
 
@@ -97,11 +97,11 @@ contract liquidator is ReentrancyGuard {
     }
 
     function checkCost (uint256 _vaultId) public view returns(uint256){
-        address ogOwner = vaultContract.vaultOwner(_vaultId);
+        // address ogOwner = vaultContract.vaultOwner(_vaultId);
 
-        (uint256 collateralValueTimes100, uint256 debtValue) = calculateCollateralProperties(vaultContract.vaultCollateral(_vaultId), vaultContract.vaultDebt(_vaultId) );
+        (, uint256 debtValue) = calculateCollateralProperties(vaultContract.vaultCollateral(_vaultId), vaultContract.vaultDebt(_vaultId) );
 
-        uint256 collateralPercentage = collateralValueTimes100.div(debtValue);
+        // uint256 collateralPercentage = collateralValueTimes100.div(debtValue);
 
         debtValue = debtValue.div(100000000);
 
@@ -180,6 +180,4 @@ contract liquidator is ReentrancyGuard {
 
         ethDebt[msg.sender] = ethDebt[msg.sender].add(ethExtract);
     }
-
-    function() external payable { }
 }

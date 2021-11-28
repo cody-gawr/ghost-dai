@@ -1,7 +1,8 @@
 {
   "dependencies": {
-    "@openzeppelin/contracts": "^2.5.0",
-    "@openzeppelin/contracts-upgradeable": "^4.2.0",
+    "@chainlink/contracts": "^0.2.2",
+    "@openzeppelin/contracts": "^4.3.3",
+    "@openzeppelin/contracts-upgradeable": "^4.3.2",
     "@poanet/solidity-flattener": "^3.0.6",
     "dotenv": "^8.2.0",
     "global": "^4.4.0",

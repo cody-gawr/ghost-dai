@@ -1,10 +1,8 @@
-pragma solidity 0.5.16;
+pragma solidity >=0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "oracles/shareOracle.sol";
 
@@ -14,7 +12,6 @@ contract erc20Stablecoin is ReentrancyGuard, VaultNFTv3 {
     PriceSource public ethPriceSource;
     
     using SafeMath for uint256;
-    using SafeERC20 for ERC20Detailed;
 
     uint256 public _minimumCollateralPercentage;
 
@@ -33,9 +30,9 @@ contract erc20Stablecoin is ReentrancyGuard, VaultNFTv3 {
 
     address public stabilityPool;
 
-    ERC20Detailed public collateral;
+    ERC20 public collateral;
 
-    ERC20Detailed public mai;
+    ERC20 public mai;
 
     uint8 public priceSourceDecimals;
 
@@ -74,8 +71,8 @@ contract erc20Stablecoin is ReentrancyGuard, VaultNFTv3 {
 
         _minimumCollateralPercentage = minimumCollateralPercentage;
 
-        collateral = ERC20Detailed(_collateral);
-        mai = ERC20Detailed(_mai);
+        collateral = ERC20(_collateral);
+        mai = ERC20(_mai);
     }
 
     modifier onlyVaultOwner(uint256 vaultID) {
@@ -155,7 +152,7 @@ contract erc20Stablecoin is ReentrancyGuard, VaultNFTv3 {
 
         if(vaultCollateral[vaultID]!=0) {
             // withdraw leftover collateral
-            collateral.safeTransfer(ownerOf(vaultID), vaultCollateral[vaultID]);
+            collateral.transfer(ownerOf(vaultID), vaultCollateral[vaultID]);
         }
 
         _burn(vaultID);
@@ -168,7 +165,7 @@ contract erc20Stablecoin is ReentrancyGuard, VaultNFTv3 {
 
     function depositCollateral(uint256 vaultID, uint256 amount) external {
 
-        collateral.safeTransferFrom(msg.sender, address(this), amount);
+        collateral.transferFrom(msg.sender, address(this), amount);
 
         uint256 newCollateral = vaultCollateral[vaultID].add(amount);
 
@@ -189,7 +186,7 @@ contract erc20Stablecoin is ReentrancyGuard, VaultNFTv3 {
         }
 
         vaultCollateral[vaultID] = newCollateral;
-        collateral.safeTransfer(msg.sender, amount);
+        collateral.transfer(msg.sender, amount);
 
         emit WithdrawCollateral(vaultID, amount);
     }
@@ -207,7 +204,7 @@ contract erc20Stablecoin is ReentrancyGuard, VaultNFTv3 {
         vaultDebt[vaultID] = newDebt;
 
         // mai
-        mai.safeTransfer(msg.sender, amount);
+        mai.transfer(msg.sender, amount);
 
         emit BorrowToken(vaultID, amount);
     }
@@ -219,7 +216,7 @@ contract erc20Stablecoin is ReentrancyGuard, VaultNFTv3 {
         uint256 _closingFee = (amount.mul(closingFee).mul(getTokenPriceSource())).div(getEthPriceSource().mul(10000));
 
         //mai
-        mai.safeTransferFrom(msg.sender, address(this), amount);
+        mai.transferFrom(msg.sender, address(this), amount);
 
         vaultDebt[vaultID] = vaultDebt[vaultID].sub(amount);
         vaultCollateral[vaultID]=vaultCollateral[vaultID].sub(_closingFee);
@@ -232,7 +229,7 @@ contract erc20Stablecoin is ReentrancyGuard, VaultNFTv3 {
         require(ethDebt[msg.sender]!=0, "Don't have anything for you.");
         uint256 amount = ethDebt[msg.sender];
         ethDebt[msg.sender]=0;
-        collateral.safeTransfer(msg.sender, amount);
+        collateral.transfer(msg.sender, amount);
     }
 
     function checkCost(uint256 vaultID) public view returns (uint256) {
@@ -318,7 +315,7 @@ contract erc20Stablecoin is ReentrancyGuard, VaultNFTv3 {
         require(mai.balanceOf(msg.sender) >= halfDebt, "Token balance too low to pay off outstanding debt");
 
         //mai
-        mai.safeTransferFrom(msg.sender, address(this), halfDebt);
+        mai.transferFrom(msg.sender, address(this), halfDebt);
 
         uint256 ethExtract = checkExtract(vaultID);
 
