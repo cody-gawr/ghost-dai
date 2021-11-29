@@ -10,15 +10,6 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.4.0",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 1000
-          }
-        }
-      },
-      {
         version: "0.5.0",
         settings: {
           optimizer: {
@@ -75,6 +66,9 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
+    localhost: {
+      url: "http://127.0.0.1:8545"
+    },
     hardhat: {},
     kovan: {
       url: "https://kovan.infura.io/v3/3b5a7e5210714ab9987bed6f373848a3",
@@ -84,10 +78,21 @@ const config: HardhatUserConfig = {
       url: "https://mainnet.infura.io/v3/3b5a7e5210714ab9987bed6f373848a3",
       accounts: [String(process.env.PRIVATE_KEY)],
     },
+    bsc_testnet: {
+      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
+      chainId: 97,
+      gasPrice: 20000000000,
+      accounts: [String(process.env.PRIVATE_KEY)]
+    },
+    bsc_mainnet: {
+      url: "https://bsc-dataseed.binance.org/",
+      chainId: 56,
+      gasPrice: 20000000000,
+      accounts: [String(process.env.PRIVATE_KEY)]
+    }
   },
   etherscan: {
-    
-    apiKey: "UFCG3BXXNR58RSNCSFSRYWTNNTG3YW5G7B"
-  }
+    apiKey: "UFCG3BXXNR58RSNCSFSRYWTNNTG3YW5G7B" //0x9441e2FCD9D18f2a73512B882Da91205E67592ac
+  },
 };
 export default config;
